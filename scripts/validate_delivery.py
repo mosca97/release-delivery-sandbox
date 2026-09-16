@@ -12,6 +12,7 @@ import yaml
 
 MANIFEST_NAME = "release-manifest.yaml"
 NOTES_NAME = "RELEASE-NOTES.md"
+FRAMEWORK_ROOT_ENTRIES = {".git", ".github", ".gitignore", "README.md", "schema", "scripts"}
 ALLOWED_ROOT_DIRECTORIES = {
     "artifacts",
     "compliance",
@@ -199,7 +200,7 @@ def validate_manifest(repository: Path) -> list[dict]:
 def validate_tree(repository: Path, materials: list[dict]) -> None:
     allowed_root_files = {MANIFEST_NAME, NOTES_NAME}
     for entry in repository.iterdir():
-        if entry.name in (".git", ".github"):
+        if entry.name in FRAMEWORK_ROOT_ENTRIES:
             continue
         if entry.is_file() and entry.name not in allowed_root_files:
             fail(f"File non consentito alla root: {entry.name}")
