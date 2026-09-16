@@ -199,7 +199,7 @@ def validate_manifest(repository: Path) -> list[dict]:
 def validate_tree(repository: Path, materials: list[dict]) -> None:
     allowed_root_files = {MANIFEST_NAME, NOTES_NAME}
     for entry in repository.iterdir():
-        if entry.name == ".git":
+        if entry.name in (".git", ".github"):
             continue
         if entry.is_file() and entry.name not in allowed_root_files:
             fail(f"File non consentito alla root: {entry.name}")
