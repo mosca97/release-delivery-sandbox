@@ -1,0 +1,86 @@
+name: Publish delivery release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout merged delivery
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Detect delivery content change
+        id: delivery
+        shell: bash
+        run: |
+          changed_files="$(git diff --name-only \
+            "${{ github.event.before }}" \
+            "${{ github.sha }}")"
+          if grep -Eq '^(release-manifest\.yaml|RELEASE-NOTES\.md|sources/|artifacts/|configuration/|docs/|evidence/|compliance/|other/)' <<< "${changed_files}"; then
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Set up Python
+        if: steps.delivery.outputs.changed == 'true'
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+
+      - name: Install manifest parser
+        if: steps.delivery.outputs.changed == 'true'
+        run: python -m pip install --disable-pip-version-check --requirement scripts/requirements.txt
+
+      - name: Publish release
+        if: steps.delivery.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          MERGE_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          supplier_version="$(python -c 'import yaml; print(yaml.safe_load(open("release-manifest.yaml", encoding="utf-8"))["supplierVersion"])')"
+          merge_epoch="$(git show -s --format=%ct "${MERGE_SHA}")"
+          delivery_date="$(date -u -d "@${merge_epoch}" +%F)"
+          safe_version="$(sed 's/[^A-Za-z0-9._-]/-/g' <<< "${supplier_version}")"
+          release_id="${delivery_date}-${safe_version}"
+          tag_name="release/${release_id}"
+
+          suffix=1
+          while gh api "repos/${REPOSITORY}/git/ref/tags/${tag_name}" >/dev/null 2>&1; do
+            suffix=$((suffix + 1))
+            tag_name="release/${release_id}-${suffix}"
+          done
+
+          draft="$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" \
+            --jq '[.[] | select(.draft == true and (.tag_name | startswith("staging/")))] | if length == 1 then .[0] else empty end')"
+
+          if [[ -n "${draft}" ]]; then
+            release_number="$(jq -r '.id' <<< "${draft}")"
+            gh api --method PATCH "repos/${REPOSITORY}/releases/${release_number}" \
+              -f "tag_name=${tag_name}" \
+              -f "target_commitish=${MERGE_SHA}" \
+              -F "draft=false" \
+              -f "name=${tag_name}" \
+              --raw-field "body=$(cat RELEASE-NOTES.md)" >/dev/null
+          else
+            gh api --method POST "repos/${REPOSITORY}/releases" \
+              -f "tag_name=${tag_name}" \
+              -f "target_commitish=${MERGE_SHA}" \
+              -F "draft=false" \
+              -f "name=${tag_name}" \
+              --raw-field "body=$(cat RELEASE-NOTES.md)" >/dev/null
+          fi
+
+          echo "Published ${tag_name}"
