@@ -1,7 +1,8 @@
 # Release notes
 
-## v1.0.0
+## v1.1.0
 
-- Added the demo application source.
-- Added the technical delivery documentation.
-- Added the distributable demo bundle as a GitHub Release asset.
+- Updated the demo application source.
+- Updated the technical documentation.
+- Added the distributable demo bundle `product-demo-v1.1.0.zip`.
+- This delivery supersedes `2026-09-16-v1.0.0`.
