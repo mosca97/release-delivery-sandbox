@@ -2,31 +2,32 @@ schemaVersion: 1
 supplier:
   name: Demo Supplier
   id: demo-supplier
-supplierVersion: v1.0.0
+supplierVersion: v1.1.0
 supplierReleaseDate: 2026-09-16
-description: First simulated supplier delivery
+supersedes: 2026-09-16-v1.0.0
+description: Second simulated supplier delivery
 materials:
   - name: demo-sources
     category: sources
-    description: Demo application sources
-    sizeBytes: 67
-    sha256: 71657bd62079792aebe63a4a29a9951b6a9b7bb9965c91b0affe17b28f370e80
+    description: Demo application sources version 1.1.0
+    sizeBytes: 74
+    sha256: 31dfb67748f7327c9ee4eb532ce750376682807c0a7ffc1551867727c879c6ac
     storage:
       type: git
       path: sources/demo/
   - name: technical-documentation
     category: docs/technical
-    description: Demo technical delivery documentation
-    sizeBytes: 90
-    sha256: b2cb06211c41f35a42ab678fc2a04a3e3a54d4c1e13590cefc1a1ad8f1542e5a
+    description: Demo technical delivery documentation for version 1.1.0
+    sizeBytes: 168
+    sha256: 372e04e059df25b1f10af3c33d5c41357033fca7509335fd43bffd1261f9d394
     storage:
       type: git
       path: docs/technical/
   - name: demo-product
     category: artifacts
-    description: Demo distributable bundle
-    sizeBytes: 185
-    sha256: d62a275e85341470d2458b96186653c7a54623a68755fe67e8b638e5f569c258
+    description: Demo distributable bundle version 1.1.0
+    sizeBytes: 193
+    sha256: f40bec07147c6824552636f92f7cf67d7fb65709cab24bfbe1ee2a710dd16205
     storage:
       type: github-release
-      asset: product-demo.zip
+      asset: product-demo-v1.1.0.zip
