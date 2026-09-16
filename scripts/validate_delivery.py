@@ -12,7 +12,15 @@ import yaml
 
 MANIFEST_NAME = "release-manifest.yaml"
 NOTES_NAME = "RELEASE-NOTES.md"
-FRAMEWORK_ROOT_ENTRIES = {".git", ".github", ".gitignore", "README.md", "schema", "scripts"}
+FRAMEWORK_ROOT_ENTRIES = {
+    ".git",
+    ".github",
+    ".gitignore",
+    ".gitattributes",
+    "README.md",
+    "schema",
+    "scripts",
+}
 ALLOWED_ROOT_DIRECTORIES = {
     "artifacts",
     "compliance",
