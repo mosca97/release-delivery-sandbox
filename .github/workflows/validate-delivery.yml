@@ -25,7 +25,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           path: delivery
           fetch-depth: 0
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Reject changes to protected automation
         working-directory: delivery
