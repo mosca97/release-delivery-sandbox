@@ -68,8 +68,14 @@ jobs:
           # NB: GET /releases/tags/{tag} non trova le draft release (nessun
           # git tag reale finche' non sono pubblicate): occorre elencare
           # tutte le release e filtrare per tag_name lato client.
+          # NB: GET /releases/tags/{tag} non trova le draft release (nessun
+          # git tag reale finche' non sono pubblicate): occorre elencare
+          # tutte le release e filtrare lato client. Il caricamento manuale
+          # di asset dalla UI di GitHub puo' inoltre rigenerare tag_name in
+          # un placeholder "untagged-xxxxx" (il campo "name" resta stabile),
+          # quindi il filtro considera anche "name".
           matches="$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" \
-            --jq "[.[] | select(.tag_name == \"${staging_tag}\")]")"
+            --jq "[.[] | select(.tag_name == \"${staging_tag}\" or .name == \"${staging_tag}\")]")"
           match_count="$(jq 'length' <<< "${matches}")"
 
           if [[ "${match_count}" -eq 0 ]]; then
