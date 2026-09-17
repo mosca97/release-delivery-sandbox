@@ -43,9 +43,7 @@ jobs:
           safe_version="$(sed 's/[^A-Za-z0-9._-]/-/g' <<< "${supplier_version}")"
           tag_name="staging/${safe_version}"
 
-          existing="$(gh api "repos/${REPOSITORY}/releases/tags/${tag_name}" 2>/dev/null || true)"
-
-          if [[ -n "${existing}" ]]; then
+          if existing="$(gh api "repos/${REPOSITORY}/releases/tags/${tag_name}" 2>/dev/null)"; then
             release_number="$(jq -r '.id' <<< "${existing}")"
             gh api --method PATCH "repos/${REPOSITORY}/releases/${release_number}" \
               -f "target_commitish=${COMMIT_SHA}" \
