@@ -71,8 +71,7 @@ jobs:
             tag_name="release/${release_id}-${suffix}"
           done
 
-          draft="$(gh api "repos/${REPOSITORY}/releases/tags/${staging_tag}" 2>/dev/null || true)"
-          if [[ -z "${draft}" ]]; then
+          if ! draft="$(gh api "repos/${REPOSITORY}/releases/tags/${staging_tag}" 2>/dev/null)"; then
             echo "Nessuna release di staging '${staging_tag}' trovata. Assicurati che il branch delivery sia stato pushato prima del merge." >&2
             exit 1
           fi
