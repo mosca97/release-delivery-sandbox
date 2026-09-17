@@ -19,9 +19,8 @@ jobs:
           set -x
           gh --version
           jq --version
-          echo "--- raw list ---"
-          gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" | head -c 2000
-          echo
+          echo "--- raw list (release-name/tag_name only) ---"
+          gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" --jq '[.[] | {id, tag_name, name, draft}]'
           echo "--- filtered via gh --jq ---"
           gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" \
             --jq "[.[] | select(.tag_name == \"staging/v1.2.0\" or .name == \"staging/v1.2.0\")]"
