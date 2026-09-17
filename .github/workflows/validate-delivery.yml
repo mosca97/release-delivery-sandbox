@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   validate:
+    if: startsWith(github.head_ref, 'delivery/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout validator from default branch
