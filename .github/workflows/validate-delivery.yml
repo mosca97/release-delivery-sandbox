@@ -24,12 +24,12 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.sha }}
-          path: delivery
+          path: pr-checkout
           fetch-depth: 0
           persist-credentials: true
 
       - name: Reject changes to protected automation
-        working-directory: delivery
+        working-directory: pr-checkout
         shell: bash
         run: |
           git fetch origin main --no-tags
@@ -50,10 +50,10 @@ jobs:
         run: python -m pip install --disable-pip-version-check --requirement validator/scripts/requirements.txt
 
       - name: Validate delivery
-        run: python validator/scripts/validate_delivery.py --repo delivery
+        run: python validator/scripts/validate_delivery.py --repo pr-checkout
 
       - name: Verify release assets are uploaded
-        working-directory: delivery
+        working-directory: pr-checkout/delivery
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}

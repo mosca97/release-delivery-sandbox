@@ -34,12 +34,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ ! -f release-manifest.yaml || ! -f RELEASE-NOTES.md ]]; then
-            echo "release-manifest.yaml o RELEASE-NOTES.md non ancora presenti a questo commit: nessuna draft da creare."
+          if [[ ! -f delivery/release-manifest.yaml || ! -f delivery/RELEASE-NOTES.md ]]; then
+            echo "delivery/release-manifest.yaml o delivery/RELEASE-NOTES.md non ancora presenti a questo commit: nessuna draft da creare."
             exit 0
           fi
 
-          supplier_version="$(python -c 'import yaml; print(yaml.safe_load(open("release-manifest.yaml", encoding="utf-8"))["supplierVersion"])')"
+          supplier_version="$(python -c 'import yaml; print(yaml.safe_load(open("delivery/release-manifest.yaml", encoding="utf-8"))["supplierVersion"])')"
           safe_version="$(sed 's/[^A-Za-z0-9._-]/-/g' <<< "${supplier_version}")"
           tag_name="staging/${safe_version}"
 
@@ -68,7 +68,7 @@ jobs:
               -f "tag_name=${tag_name}" \
               -f "target_commitish=${COMMIT_SHA}" \
               -f "name=${tag_name}" \
-              --raw-field "body=$(cat RELEASE-NOTES.md)" >/dev/null
+              --raw-field "body=$(cat delivery/RELEASE-NOTES.md)" >/dev/null
             echo "Draft di staging aggiornata: ${tag_name}"
           else
             gh api --method POST "repos/${REPOSITORY}/releases" \
@@ -76,7 +76,7 @@ jobs:
               -f "target_commitish=${COMMIT_SHA}" \
               -F "draft=true" \
               -f "name=${tag_name}" \
-              --raw-field "body=$(cat RELEASE-NOTES.md)" >/dev/null
+              --raw-field "body=$(cat delivery/RELEASE-NOTES.md)" >/dev/null
             echo "Draft di staging creata: ${tag_name}"
           fi
 
