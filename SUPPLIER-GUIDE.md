@@ -12,20 +12,21 @@ Esempio: `delivery/2026-09-17-v1.2.0`
 
 ## 2. Aggiungi i file nelle cartelle previste
 
-Metti i file nuovi/modificati sotto una di queste cartelle (in base al contenuto):
+Tutto il materiale del fornitore vive sotto `delivery/`. Metti i file nuovi/modificati
+sotto una di queste sottocartelle (in base al contenuto):
 
 | Categoria | Cartella |
 |---|---|
-| `sources` | `sources/` |
-| `docs/technical` | `docs/technical/` |
-| `docs/user` | `docs/user/` |
-| `configuration` | `configuration/` |
-| `evidence` | `evidence/` |
-| `compliance` | `compliance/` |
-| `artifacts` | `artifacts/` (solo se li tieni in git, non come asset della release) |
-| `other` | `other/` (richiede `classificationReason`) |
+| `sources` | `delivery/sources/` |
+| `docs/technical` | `delivery/docs/technical/` |
+| `docs/user` | `delivery/docs/user/` |
+| `configuration` | `delivery/configuration/` |
+| `evidence` | `delivery/evidence/` |
+| `compliance` | `delivery/compliance/` |
+| `artifacts` | `delivery/artifacts/` (solo se li tieni in git, non come asset della release) |
+| `other` | `delivery/other/` (richiede `classificationReason`) |
 
-## 3. Aggiorna `release-manifest.yaml`
+## 3. Aggiorna `delivery/release-manifest.yaml`
 
 - Aggiorna `supplierVersion`, `supplierReleaseDate`, `supersedes`, `description`.
 - In `materials.folders`: una voce per **ogni cartella** toccata (non elencare i singoli file):
@@ -41,7 +42,7 @@ Metti i file nuovi/modificati sotto una di queste cartelle (in base al contenuto
     description: ...
   ```
 
-## 4. Aggiorna `RELEASE-NOTES.md`
+## 4. Aggiorna `delivery/RELEASE-NOTES.md`
 
 Descrivi le novità della versione.
 

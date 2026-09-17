@@ -10,6 +10,7 @@ import yaml
 
 MANIFEST_NAME = "release-manifest.yaml"
 NOTES_NAME = "RELEASE-NOTES.md"
+DELIVERY_DIR_NAME = "delivery"
 FRAMEWORK_ROOT_ENTRIES = {
     ".git",
     ".github",
@@ -20,7 +21,7 @@ FRAMEWORK_ROOT_ENTRIES = {
     "schema",
     "scripts",
 }
-ALLOWED_ROOT_DIRECTORIES = {
+ALLOWED_DELIVERY_DIRECTORIES = {
     "artifacts",
     "compliance",
     "configuration",
@@ -108,11 +109,12 @@ def validate_artifact(value, index: int) -> dict:
 
 
 def validate_manifest(repository: Path) -> tuple[list[dict], list[dict]]:
-    manifest_path = repository / MANIFEST_NAME
+    delivery_root = repository / DELIVERY_DIR_NAME
+    manifest_path = delivery_root / MANIFEST_NAME
     if not manifest_path.is_file():
-        fail(f"Manca {MANIFEST_NAME} alla root")
-    if not (repository / NOTES_NAME).is_file():
-        fail(f"Manca {NOTES_NAME} alla root")
+        fail(f"Manca {MANIFEST_NAME} in {DELIVERY_DIR_NAME}/")
+    if not (delivery_root / NOTES_NAME).is_file():
+        fail(f"Manca {NOTES_NAME} in {DELIVERY_DIR_NAME}/")
 
     try:
         with manifest_path.open("r", encoding="utf-8") as stream:
@@ -172,18 +174,25 @@ def check_no_symlinks(path: Path) -> None:
 
 
 def validate_tree(repository: Path, folders: list[dict]) -> None:
-    allowed_root_files = {MANIFEST_NAME, NOTES_NAME}
+    allowed_root_entries = FRAMEWORK_ROOT_ENTRIES | {DELIVERY_DIR_NAME}
     for entry in repository.iterdir():
-        if entry.name in FRAMEWORK_ROOT_ENTRIES:
-            continue
-        if entry.is_file() and entry.name not in allowed_root_files:
-            fail(f"File non consentito alla root: {entry.name}")
-        if entry.is_dir() and entry.name not in ALLOWED_ROOT_DIRECTORIES:
-            fail(f"Directory non consentita alla root: {entry.name}")
+        if entry.name not in allowed_root_entries:
+            fail(f"Elemento non consentito alla root: {entry.name}")
+
+    delivery_root = repository / DELIVERY_DIR_NAME
+    if not delivery_root.is_dir():
+        fail(f"Manca la cartella {DELIVERY_DIR_NAME}/")
+
+    allowed_delivery_files = {MANIFEST_NAME, NOTES_NAME}
+    for entry in delivery_root.iterdir():
+        if entry.is_file() and entry.name not in allowed_delivery_files:
+            fail(f"File non consentito in {DELIVERY_DIR_NAME}/: {entry.name}")
+        if entry.is_dir() and entry.name not in ALLOWED_DELIVERY_DIRECTORIES:
+            fail(f"Directory non consentita in {DELIVERY_DIR_NAME}/: {entry.name}")
 
     covered_dirs: list[Path] = []
     for folder in folders:
-        relative = PurePosixPath(*CATEGORY_DIRECTORIES[folder["category"]])
+        relative = PurePosixPath(DELIVERY_DIR_NAME, *CATEGORY_DIRECTORIES[folder["category"]])
         local_path = repository.joinpath(*relative.parts)
         if not local_path.is_dir():
             fail(f"Cartella dichiarata non trovata: {relative}/")
@@ -192,8 +201,8 @@ def validate_tree(repository: Path, folders: list[dict]) -> None:
             fail(f"Cartella dichiarata ma vuota: {relative}/")
         covered_dirs.append(local_path)
 
-    for root_name in ALLOWED_ROOT_DIRECTORIES:
-        root = repository / root_name
+    for root_name in ALLOWED_DELIVERY_DIRECTORIES:
+        root = delivery_root / root_name
         if not root.exists():
             continue
         for file_path in root.rglob("*"):
