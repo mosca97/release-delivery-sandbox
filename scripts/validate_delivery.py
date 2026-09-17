@@ -16,6 +16,7 @@ FRAMEWORK_ROOT_ENTRIES = {
     ".gitignore",
     ".gitattributes",
     "README.md",
+    "SUPPLIER-GUIDE.md",
     "schema",
     "scripts",
 }
