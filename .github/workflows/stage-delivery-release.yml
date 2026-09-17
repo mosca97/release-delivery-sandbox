@@ -43,12 +43,17 @@ jobs:
           safe_version="$(sed 's/[^A-Za-z0-9._-]/-/g' <<< "${supplier_version}")"
           tag_name="staging/${safe_version}"
 
-          # NB: GET /releases/tags/{tag} non trova le draft release: una draft
-          # non crea il git tag reale finche' non viene pubblicata, quindi
-          # l'endpoint per-tag risponde sempre 404. Bisogna elencare tutte le
-          # release e filtrare per tag_name lato client.
+          # NB1: GET /releases/tags/{tag} non trova le draft release: una
+          # draft non crea il git tag reale finche' non viene pubblicata,
+          # quindi l'endpoint per-tag risponde sempre 404. Bisogna elencare
+          # tutte le release e filtrare lato client.
+          # NB2: caricare asset su una draft dalla UI di GitHub puo' far
+          # rigenerare tag_name in un placeholder "untagged-xxxxx" (il campo
+          # "name" resta invece stabile). Il filtro considera quindi anche
+          # "name" per ritrovare la draft, e il PATCH sotto ripristina
+          # sempre tag_name a quello corretto.
           matches="$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" \
-            --jq "[.[] | select(.tag_name == \"${tag_name}\")]")"
+            --jq "[.[] | select(.tag_name == \"${tag_name}\" or .name == \"${tag_name}\")]")"
           match_count="$(jq 'length' <<< "${matches}")"
 
           if [[ "${match_count}" -gt 1 ]]; then
@@ -60,6 +65,7 @@ jobs:
           if [[ "${match_count}" -eq 1 ]]; then
             release_number="$(jq -r '.[0].id' <<< "${matches}")"
             gh api --method PATCH "repos/${REPOSITORY}/releases/${release_number}" \
+              -f "tag_name=${tag_name}" \
               -f "target_commitish=${COMMIT_SHA}" \
               -f "name=${tag_name}" \
               --raw-field "body=$(cat RELEASE-NOTES.md)" >/dev/null
