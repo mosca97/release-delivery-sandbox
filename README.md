@@ -3,6 +3,8 @@
 Private sandbox for testing the supplier delivery flow described by
 `AgicCompany/chiome-release_management`.
 
+See [`SUPPLIER-GUIDE.md`](SUPPLIER-GUIDE.md) for the step-by-step supplier flow.
+
 The repository will contain:
 
 - stable validation and publication automation under `.github/`;

@@ -35,7 +35,7 @@ jobs:
           changed_files="$(git diff --name-only \
             origin/main \
             HEAD)"
-          if grep -Eq '^(\.github/|schema/|scripts/|README\.md$|\.gitignore$|\.gitattributes$)' <<< "${changed_files}"; then
+          if grep -Eq '^(\.github/|schema/|scripts/|README\.md$|SUPPLIER-GUIDE\.md$|\.gitignore$|\.gitattributes$)' <<< "${changed_files}"; then
             echo "The delivery PR must not modify framework-controlled paths."
             exit 1
           fi
