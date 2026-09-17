@@ -65,10 +65,25 @@ jobs:
           safe_version="$(sed 's/[^A-Za-z0-9._-]/-/g' <<< "${supplier_version}")"
           staging_tag="staging/${safe_version}"
 
-          if ! draft="$(gh api "repos/${REPOSITORY}/releases/tags/${staging_tag}" 2>/dev/null)"; then
+          # NB: GET /releases/tags/{tag} non trova le draft release (nessun
+          # git tag reale finche' non sono pubblicate): occorre elencare
+          # tutte le release e filtrare per tag_name lato client.
+          matches="$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" \
+            --jq "[.[] | select(.tag_name == \"${staging_tag}\")]")"
+          match_count="$(jq 'length' <<< "${matches}")"
+
+          if [[ "${match_count}" -eq 0 ]]; then
             echo "Nessuna release di staging '${staging_tag}' trovata. Fai il push del branch delivery e carica gli asset prima di aprire/aggiornare la PR." >&2
             exit 1
           fi
+
+          if [[ "${match_count}" -gt 1 ]]; then
+            echo "Trovate ${match_count} release con tag '${staging_tag}': rimuovi manualmente i duplicati." >&2
+            jq -r '.[] | "  id=\(.id) created_at=\(.created_at)"' <<< "${matches}" >&2
+            exit 1
+          fi
+
+          draft="$(jq '.[0]' <<< "${matches}")"
 
           expected_assets="$(python -c '
           materials = __import__("yaml").safe_load(open("release-manifest.yaml", encoding="utf-8")).get("materials", {})

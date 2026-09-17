@@ -43,8 +43,22 @@ jobs:
           safe_version="$(sed 's/[^A-Za-z0-9._-]/-/g' <<< "${supplier_version}")"
           tag_name="staging/${safe_version}"
 
-          if existing="$(gh api "repos/${REPOSITORY}/releases/tags/${tag_name}" 2>/dev/null)"; then
-            release_number="$(jq -r '.id' <<< "${existing}")"
+          # NB: GET /releases/tags/{tag} non trova le draft release: una draft
+          # non crea il git tag reale finche' non viene pubblicata, quindi
+          # l'endpoint per-tag risponde sempre 404. Bisogna elencare tutte le
+          # release e filtrare per tag_name lato client.
+          matches="$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" \
+            --jq "[.[] | select(.tag_name == \"${tag_name}\")]")"
+          match_count="$(jq 'length' <<< "${matches}")"
+
+          if [[ "${match_count}" -gt 1 ]]; then
+            echo "Trovate ${match_count} release con tag '${tag_name}': rimuovi manualmente i duplicati prima di continuare." >&2
+            jq -r '.[] | "  id=\(.id) created_at=\(.created_at)"' <<< "${matches}" >&2
+            exit 1
+          fi
+
+          if [[ "${match_count}" -eq 1 ]]; then
+            release_number="$(jq -r '.[0].id' <<< "${matches}")"
             gh api --method PATCH "repos/${REPOSITORY}/releases/${release_number}" \
               -f "target_commitish=${COMMIT_SHA}" \
               -f "name=${tag_name}" \
