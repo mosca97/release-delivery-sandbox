@@ -3,6 +3,7 @@ name: Publish delivery release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -21,6 +22,11 @@ jobs:
         id: delivery
         shell: bash
         run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
           changed_files="$(git diff --name-only \
             "${{ github.event.before }}" \
             "${{ github.sha }}")"
@@ -51,9 +57,11 @@ jobs:
           set -euo pipefail
 
           supplier_version="$(python -c 'import yaml; print(yaml.safe_load(open("release-manifest.yaml", encoding="utf-8"))["supplierVersion"])')"
+          safe_version="$(sed 's/[^A-Za-z0-9._-]/-/g' <<< "${supplier_version}")"
+          staging_tag="staging/${safe_version}"
+
           merge_epoch="$(git show -s --format=%ct "${MERGE_SHA}")"
           delivery_date="$(date -u -d "@${merge_epoch}" +%F)"
-          safe_version="$(sed 's/[^A-Za-z0-9._-]/-/g' <<< "${supplier_version}")"
           release_id="${delivery_date}-${safe_version}"
           tag_name="release/${release_id}"
 
@@ -63,24 +71,42 @@ jobs:
             tag_name="release/${release_id}-${suffix}"
           done
 
-          draft="$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" \
-            --jq '[.[] | select(.draft == true and (.tag_name | startswith("staging/")))] | if length == 1 then .[0] else empty end')"
-
-          if [[ -n "${draft}" ]]; then
-            release_number="$(jq -r '.id' <<< "${draft}")"
-            gh api --method PATCH "repos/${REPOSITORY}/releases/${release_number}" \
-              -f "tag_name=${tag_name}" \
-              -f "target_commitish=${MERGE_SHA}" \
-              -F "draft=false" \
-              -f "name=${tag_name}" \
-              --raw-field "body=$(cat RELEASE-NOTES.md)" >/dev/null
-          else
-            gh api --method POST "repos/${REPOSITORY}/releases" \
-              -f "tag_name=${tag_name}" \
-              -f "target_commitish=${MERGE_SHA}" \
-              -F "draft=false" \
-              -f "name=${tag_name}" \
-              --raw-field "body=$(cat RELEASE-NOTES.md)" >/dev/null
+          draft="$(gh api "repos/${REPOSITORY}/releases/tags/${staging_tag}" 2>/dev/null || true)"
+          if [[ -z "${draft}" ]]; then
+            echo "Nessuna release di staging '${staging_tag}' trovata. Assicurati che il branch delivery sia stato pushato prima del merge." >&2
+            exit 1
           fi
+
+          # Verifica solo l'esistenza per nome degli asset richiesti (nessun controllo hash)
+          expected_assets="$(python -c '
+          materials = __import__("yaml").safe_load(open("release-manifest.yaml", encoding="utf-8")).get("materials", [])
+          for material in materials:
+              storage = material.get("storage", {})
+              if storage.get("type") == "github-release":
+                  print(storage["asset"])
+          ')"
+
+          missing_assets=""
+          while IFS= read -r asset_name; do
+            [[ -z "${asset_name}" ]] && continue
+            if ! jq -e --arg name "${asset_name}" '.assets[] | select(.name == $name)' <<< "${draft}" >/dev/null; then
+              missing_assets+="${asset_name}"$'\n'
+            fi
+          done <<< "${expected_assets}"
+
+          if [[ -n "${missing_assets}" ]]; then
+            echo "Asset mancanti nella release di staging '${staging_tag}':" >&2
+            echo "${missing_assets}" >&2
+            echo "La release resta in stato draft. Carica i file mancanti dalla UI e rilancia questo workflow (workflow_dispatch)." >&2
+            exit 1
+          fi
+
+          release_number="$(jq -r '.id' <<< "${draft}")"
+          gh api --method PATCH "repos/${REPOSITORY}/releases/${release_number}" \
+            -f "tag_name=${tag_name}" \
+            -f "target_commitish=${MERGE_SHA}" \
+            -F "draft=false" \
+            -f "name=${tag_name}" \
+            --raw-field "body=$(cat RELEASE-NOTES.md)" >/dev/null
 
           echo "Published ${tag_name}"

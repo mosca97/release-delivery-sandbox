@@ -1,0 +1,65 @@
+name: Stage delivery release
+
+on:
+  push:
+    branches:
+      - 'delivery/**'
+
+permissions:
+  contents: write
+
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout delivery branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+
+      - name: Install manifest parser
+        run: python -m pip install --disable-pip-version-check --requirement scripts/requirements.txt
+
+      - name: Create or update staging draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! -f release-manifest.yaml || ! -f RELEASE-NOTES.md ]]; then
+            echo "release-manifest.yaml o RELEASE-NOTES.md non ancora presenti a questo commit: nessuna draft da creare."
+            exit 0
+          fi
+
+          supplier_version="$(python -c 'import yaml; print(yaml.safe_load(open("release-manifest.yaml", encoding="utf-8"))["supplierVersion"])')"
+          safe_version="$(sed 's/[^A-Za-z0-9._-]/-/g' <<< "${supplier_version}")"
+          tag_name="staging/${safe_version}"
+
+          existing="$(gh api "repos/${REPOSITORY}/releases/tags/${tag_name}" 2>/dev/null || true)"
+
+          if [[ -n "${existing}" ]]; then
+            release_number="$(jq -r '.id' <<< "${existing}")"
+            gh api --method PATCH "repos/${REPOSITORY}/releases/${release_number}" \
+              -f "target_commitish=${COMMIT_SHA}" \
+              -f "name=${tag_name}" \
+              --raw-field "body=$(cat RELEASE-NOTES.md)" >/dev/null
+            echo "Draft di staging aggiornata: ${tag_name}"
+          else
+            gh api --method POST "repos/${REPOSITORY}/releases" \
+              -f "tag_name=${tag_name}" \
+              -f "target_commitish=${COMMIT_SHA}" \
+              -F "draft=true" \
+              -f "name=${tag_name}" \
+              --raw-field "body=$(cat RELEASE-NOTES.md)" >/dev/null
+            echo "Draft di staging creata: ${tag_name}"
+          fi
+
+          echo "Carica manualmente gli asset richiesti dal manifest sulla release '${tag_name}' dalla UI di GitHub." >> "${GITHUB_STEP_SUMMARY}"
