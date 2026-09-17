@@ -61,3 +61,4 @@ Un workflow valida automaticamente manifest e struttura dei file. Correggi event
 
 - **Mancano asset dichiarati** → il workflow di pubblicazione fallisce volutamente e la release resta **Draft**. Carica i file mancanti e rilancia manualmente il workflow *Publish delivery release* da Actions.
 - **Tutto presente** → la release viene pubblicata automaticamente (tag `release/...`) e diventa immutabile.
+
