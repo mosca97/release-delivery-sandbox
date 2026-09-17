@@ -1,4 +1,4 @@
-schemaVersion: 1
+schemaVersion: 2
 supplier:
   name: Demo Supplier
   id: demo-supplier
@@ -7,27 +7,14 @@ supplierReleaseDate: 2026-09-16
 supersedes: 2026-09-16-v1.0.0
 description: Second simulated supplier delivery
 materials:
-  - name: demo-sources
-    category: sources
-    description: Demo application sources version 1.1.0
-    sizeBytes: 74
-    sha256: 31dfb67748f7327c9ee4eb532ce750376682807c0a7ffc1551867727c879c6ac
-    storage:
-      type: git
-      path: sources/demo/
-  - name: technical-documentation
-    category: docs/technical
-    description: Demo technical delivery documentation for version 1.1.0
-    sizeBytes: 168
-    sha256: 372e04e059df25b1f10af3c33d5c41357033fca7509335fd43bffd1261f9d394
-    storage:
-      type: git
-      path: docs/technical/
-  - name: demo-product
-    category: artifacts
-    description: Demo distributable bundle version 1.1.0
-    sizeBytes: 193
-    sha256: f40bec07147c6824552636f92f7cf67d7fb65709cab24bfbe1ee2a710dd16205
-    storage:
-      type: github-release
-      asset: product-demo-v1.1.0.zip
+  folders:
+    - name: demo-sources
+      category: sources
+      description: Demo application sources version 1.1.0
+    - name: technical-documentation
+      category: docs/technical
+      description: Demo technical delivery documentation for version 1.1.0
+  artifacts:
+    - name: product-demo-v1.1.0.zip
+      category: artifacts
+      description: Demo distributable bundle version 1.1.0

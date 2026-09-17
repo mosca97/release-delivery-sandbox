@@ -79,11 +79,9 @@ jobs:
 
           # Verifica solo l'esistenza per nome degli asset richiesti (nessun controllo hash)
           expected_assets="$(python -c '
-          materials = __import__("yaml").safe_load(open("release-manifest.yaml", encoding="utf-8")).get("materials", [])
-          for material in materials:
-              storage = material.get("storage", {})
-              if storage.get("type") == "github-release":
-                  print(storage["asset"])
+          materials = __import__("yaml").safe_load(open("release-manifest.yaml", encoding="utf-8")).get("materials", {})
+          for artifact in materials.get("artifacts", []):
+              print(artifact["name"])
           ')"
 
           missing_assets=""
