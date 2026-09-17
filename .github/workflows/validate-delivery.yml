@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   validate:
+    if: startsWith(github.head_ref, 'delivery/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout validator from default branch
@@ -50,3 +51,43 @@ jobs:
 
       - name: Validate delivery
         run: python validator/scripts/validate_delivery.py --repo delivery
+
+      - name: Verify release assets are uploaded
+        working-directory: delivery
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          supplier_version="$(python -c 'import yaml; print(yaml.safe_load(open("release-manifest.yaml", encoding="utf-8"))["supplierVersion"])')"
+          safe_version="$(sed 's/[^A-Za-z0-9._-]/-/g' <<< "${supplier_version}")"
+          staging_tag="staging/${safe_version}"
+
+          if ! draft="$(gh api "repos/${REPOSITORY}/releases/tags/${staging_tag}" 2>/dev/null)"; then
+            echo "Nessuna release di staging '${staging_tag}' trovata. Fai il push del branch delivery e carica gli asset prima di aprire/aggiornare la PR." >&2
+            exit 1
+          fi
+
+          expected_assets="$(python -c '
+          materials = __import__("yaml").safe_load(open("release-manifest.yaml", encoding="utf-8")).get("materials", {})
+          for artifact in materials.get("artifacts", []):
+              print(artifact["name"])
+          ')"
+
+          missing_assets=""
+          while IFS= read -r asset_name; do
+            [[ -z "${asset_name}" ]] && continue
+            if ! jq -e --arg name "${asset_name}" '.assets[] | select(.name == $name)' <<< "${draft}" >/dev/null; then
+              missing_assets+="${asset_name}"$'\n'
+            fi
+          done <<< "${expected_assets}"
+
+          if [[ -n "${missing_assets}" ]]; then
+            echo "Asset mancanti nella release di staging '${staging_tag}':" >&2
+            echo "${missing_assets}" >&2
+            exit 1
+          fi
+
+          echo "Tutti gli asset richiesti sono presenti in '${staging_tag}'."
