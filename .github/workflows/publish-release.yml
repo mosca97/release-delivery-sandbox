@@ -71,10 +71,25 @@ jobs:
             tag_name="release/${release_id}-${suffix}"
           done
 
-          if ! draft="$(gh api "repos/${REPOSITORY}/releases/tags/${staging_tag}" 2>/dev/null)"; then
+          # NB: GET /releases/tags/{tag} non trova le draft release (nessun
+          # git tag reale finche' non sono pubblicate): occorre elencare
+          # tutte le release e filtrare per tag_name lato client.
+          matches="$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" \
+            --jq "[.[] | select(.tag_name == \"${staging_tag}\")]")"
+          match_count="$(jq 'length' <<< "${matches}")"
+
+          if [[ "${match_count}" -eq 0 ]]; then
             echo "Nessuna release di staging '${staging_tag}' trovata. Assicurati che il branch delivery sia stato pushato prima del merge." >&2
             exit 1
           fi
+
+          if [[ "${match_count}" -gt 1 ]]; then
+            echo "Trovate ${match_count} release con tag '${staging_tag}': rimuovi manualmente i duplicati prima di pubblicare." >&2
+            jq -r '.[] | "  id=\(.id) created_at=\(.created_at)"' <<< "${matches}" >&2
+            exit 1
+          fi
+
+          draft="$(jq '.[0]' <<< "${matches}")"
 
           # Verifica solo l'esistenza per nome degli asset richiesti (nessun controllo hash)
           expected_assets="$(python -c '
