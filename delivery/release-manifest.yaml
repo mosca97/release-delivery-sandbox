@@ -2,7 +2,7 @@ schemaVersion: 2
 supplier:
   name: Demo Supplier
   id: demo-supplier
-supplierVersion: v1.4.0
+supplierVersion: v1.4.1
 supplierReleaseDate: 2026-09-16
 supersedes: 2026-09-16-v1.3.0
 description: Second simulated supplier delivery
