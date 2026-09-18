@@ -2,19 +2,19 @@ schemaVersion: 2
 supplier:
   name: Demo Supplier
   id: demo-supplier
-supplierVersion: v1.3.0
+supplierVersion: v1.4.0
 supplierReleaseDate: 2026-09-16
-supersedes: 2026-09-16-v1.2.0
+supersedes: 2026-09-16-v1.3.0
 description: Second simulated supplier delivery
 materials:
   folders:
     - name: sources
       category: sources
-      description: Demo application sources version 1.3.0
+      description: Demo application sources version 1.4.0
     - name: docs
       category: docs/technical
-      description: Demo technical delivery documentation for version 1.3.0
+      description: Demo technical delivery documentation for version 1.4.0
   artifacts:
-    - name: product-demo-v1.3.0.zip
+    - name: product-demo-v1.4.0.zip
       category: artifacts
-      description: Demo distributable bundle version 1.3.0
+      description: Demo distributable bundle version 1.4.0
